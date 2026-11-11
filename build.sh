@@ -27,7 +27,8 @@ esac
 
 app="build/$name.app"
 rm -rf "$app"
-mkdir -p "$app/Contents/MacOS"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+cp Resources/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
 
 swiftc "${flags[@]}" -module-name TwentyTwentyTwenty -module-cache-path build/module-cache \
   -o "$app/Contents/MacOS/$name" "${sources[@]}"
@@ -39,6 +40,7 @@ cat > "$app/Contents/Info.plist" <<EOF
 <dict>
   <key>CFBundleExecutable</key><string>$name</string>
   <key>CFBundleIdentifier</key><string>$identifier</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleName</key><string>20-20-20</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>

@@ -4,7 +4,9 @@ import AppKit
 //   --self-test                 checks the cycle's rules against a fake clock, without showing anything
 //   --render-previews <folder>  writes pictures of the blackout and the Work hours form, without showing them
 //   --reset-state               deletes the test build's own saved state
-// While running, each blackout writes screen-check.json next to the test state: whether every display is
+//   --render-icon <iconset>     draws the app icon at every size into an .iconset folder for iconutil
+// While running, status-item.json (written 2 seconds after launch) says whether the menu bar icon is on screen.
+// Each blackout also writes screen-check.json next to the test state: whether every display is
 // covered, what the system has stacked above the blackout, and whether keyboard focus stayed where it was.
 
 final class FakeClock: Clock {
@@ -404,4 +406,62 @@ func writeScreenCheck(overlayWindowNumbers: [Int], to url: URL) {
     if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
         try? data.write(to: url)
     }
+}
+
+// MARK: - Menu bar icon check
+
+@MainActor
+func writeStatusItemCheck(_ item: NSStatusItem, to url: URL) {
+    let window = item.button?.window
+    let report: [String: Any] = [
+        "itemIsVisible": item.isVisible,
+        "hasImage": item.button?.image != nil,
+        "onScreen": window?.occlusionState.contains(.visible) ?? false,
+        "frame": window.map { "\(Int($0.frame.minX)),\(Int($0.frame.minY)) \(Int($0.frame.width))x\(Int($0.frame.height))" } ?? "none",
+        "screenWidth": Int(NSScreen.main?.frame.width ?? 0),
+    ]
+    if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
+        try? data.write(to: url)
+    }
+}
+
+// MARK: - App icon
+
+/// The same eye as the menu bar, white on a dark plate, on the standard macOS icon grid (1024 canvas, 824 plate).
+@MainActor
+private func drawIcon() {
+    let plate = NSBezierPath(roundedRect: NSRect(x: 100, y: 100, width: 824, height: 824), xRadius: 185, yRadius: 185)
+    NSGradient(starting: NSColor(white: 0.20, alpha: 1), ending: NSColor(white: 0.03, alpha: 1))!.draw(in: plate, angle: -90)
+
+    let style = NSImage.SymbolConfiguration(pointSize: 400, weight: .medium)
+        .applying(NSImage.SymbolConfiguration(paletteColors: [.white]))
+    let eye = NSImage(systemSymbolName: "eye", accessibilityDescription: nil)!.withSymbolConfiguration(style)!
+    let width: CGFloat = 560
+    let height = width * eye.size.height / eye.size.width
+    eye.draw(in: NSRect(x: 512 - width / 2, y: 512 - height / 2, width: width, height: height))
+}
+
+@MainActor
+func renderIcon(into iconset: String) {
+    let folder = URL(fileURLWithPath: iconset)
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let sizes = [
+        ("icon_16x16", 16), ("icon_16x16@2x", 32), ("icon_32x32", 32), ("icon_32x32@2x", 64),
+        ("icon_128x128", 128), ("icon_128x128@2x", 256), ("icon_256x256", 256), ("icon_256x256@2x", 512),
+        ("icon_512x512", 512), ("icon_512x512@2x", 1024),
+    ]
+    for (name, pixels) in sizes {
+        let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels, bitsPerSample: 8, samplesPerPixel: 4,
+            hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        let scale = NSAffineTransform()
+        scale.scale(by: CGFloat(pixels) / 1024)
+        scale.concat()
+        drawIcon()
+        NSGraphicsContext.restoreGraphicsState()
+        try! bitmap.representation(using: .png, properties: [:])!.write(to: folder.appendingPathComponent(name + ".png"))
+    }
+    print("wrote \(sizes.count) sizes to \(folder.path)")
 }

@@ -634,6 +634,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         #endif
         if !cycle.isOnboarded { showWorkHours() }
         advance(cycle.tick())
+        #if TESTBUILD
+        perform(#selector(recordStatusItemCheck), with: nil, afterDelay: 2)
+        #endif
     }
 
     // MARK: Menu
@@ -907,6 +910,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 
     #if TESTBUILD
+    @objc private func recordStatusItemCheck() {
+        writeStatusItemCheck(
+            statusItem, to: AppDelegate.stateURL.deletingLastPathComponent().appendingPathComponent("status-item.json"))
+    }
+
     @objc private func recordScreenCheck() {
         writeScreenCheck(
             overlayWindowNumbers: blackout.windowNumbers,
@@ -935,6 +943,10 @@ MainActor.assumeIsolated {
     #if TESTBUILD
     if CommandLine.arguments.contains("--reset-state") {
         try? FileManager.default.removeItem(at: AppDelegate.stateURL.deletingLastPathComponent())
+        exit(0)
+    }
+    if let flag = CommandLine.arguments.firstIndex(of: "--render-icon"), CommandLine.arguments.count > flag + 1 {
+        renderIcon(into: CommandLine.arguments[flag + 1])
         exit(0)
     }
     if let flag = CommandLine.arguments.firstIndex(of: "--render-previews"), CommandLine.arguments.count > flag + 1 {
