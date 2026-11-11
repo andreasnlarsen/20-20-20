@@ -1,6 +1,6 @@
 # SPEC: 20-20-20
 
-- **Status:** built; rule checks pass; on-screen checks not yet run (see Verification status)
+- **Status:** built and installed; rule checks pass; on-screen checks partly run (see Verification status)
 - **Last updated:** 2026-11-11
 - **Decision basis**
   - From Andreas: the purpose is to not let him skip the break. It must be impossible to game. No exit during a break. It works the same in meetings. A break must not break an ongoing dictation (Wispr Flow). Three real exceptions exist: recording the screen, presenting in person, watching a film. Minimum requirements, lightweight.
@@ -23,10 +23,10 @@ During work hours, every 20 minutes the Mac blacks out every display for 30 seco
 | R5 | **Dictation survives.** A break never takes keyboard focus and never touches audio input. | A Wispr Flow dictation that is running when the break starts keeps recording, and its text lands in the app that had the cursor. | Start a dictation, choose "Break now", keep speaking through the blackout, read the result. |
 | R6 | **Pause, for the three exceptions only.** The menu offers a pause of 30, 60 or 120 minutes. Choosing it starts a break immediately; the pause begins after that break. A break follows the moment the pause ends. A pause cannot be extended, and no new pause is available for 2 hours after one ends. All of this survives the app being killed. | A pause never removes the break that was coming. The pause items are disabled during a pause and for 2 hours after it. | Test build with shortened times: choose a pause, try to pause again, kill the app during the pause, and watch the break at the end. |
 | R7 | **Always running.** Starts at login, sits in the menu bar only (no Dock icon), asks for no permissions. | The eye icon is present after logging in again; no permission prompt is ever shown. | Log out and in once. |
-| R8 | **Work hours.** Breaks happen only inside work hours: one start time, one end time (start before end), and a tick per weekday. First startup is onboarding: the Work hours panel opens showing every day 08:00–18:00, it cannot be closed without confirming, and what you confirm applies at once. Until you confirm, every day 08:00–18:00 is enforced, so leaving the panel open gains nothing. Every later change starts at 00:00 the next day. The app reads the date, time and time zone once per restart of the Mac and counts elapsed time from there, so changing the system clock or time zone mid-session moves nothing. Outside work hours nothing happens, including the break that would follow a pause. A break already running at the end time finishes. | A change made today leaves today's hours as they were and shows as "from tomorrow" in the panel. Moving the system clock or time zone outside work hours does not stop the breaks. At the start time the clock begins at 20:00. | Test build with an adjustable clock: change the hours mid-day, cross midnight, change the system time zone, cross the start and end times. |
+| R8 | **Work hours.** Breaks happen only inside work hours: one start time, one end time (start before end), and a tick per weekday. First startup is onboarding: the Work hours panel opens showing every day 08:00–18:00, it cannot be closed without confirming, and what you confirm applies at once. Until you confirm, every day 08:00–18:00 is enforced, so leaving the panel open gains nothing. Every later change starts at 00:00 the next day. The app reads the date, time and time zone once per restart of the Mac and counts elapsed time from there, so changing the system clock or time zone mid-session moves nothing. Outside work hours nothing happens, including the break that would follow a pause. A break already running at the end time finishes. | A change made today leaves today's hours as they were and shows as "from tomorrow" in the panel. Moving the system clock or time zone outside work hours does not stop the breaks. At the start time the clock begins at 20:00. | Self-test against a fake clock: change the hours mid-day, cross midnight, cross the start and end times, and resume with a saved clock reading and time zone. |
 | R9 | **Margin to get to a window.** The first 10 seconds of every blackout are for getting to a window; the 20 seconds start after them. The counter runs from −10 up to 20. The text on screen is the same throughout: "Look at something 20 feet away". | The counter starts at −10, passes 0 after 10 seconds and the blackout ends at 20. | Test build: "Break now" and watch the counter. |
 
-**Menu (the whole interface):** `Next break in 14:32` (outside work hours: `Off until Mon 08:00`), `Break now`, `Pause 30 min`, `Pause 60 min`, `Pause 120 min`, `Work hours…`. During the last minute the countdown also shows in the menu bar itself.
+**Menu (the whole interface):** `Next break in 14:32` (outside work hours: `Off until Mon 08:00`), `Break now`, `Pause 30 min`, `Pause 60 min`, `Pause 120 min`, `Work hours…`. Above the pause items one line says a pause starts and ends with a break, and while pausing is locked another says when it is available again. During the last minute the countdown also shows in the menu bar itself.
 
 **Work hours panel (the only setting):** start time, end time, seven weekday ticks, and one line saying when the shown hours take effect.
 
@@ -36,7 +36,7 @@ During work hours, every 20 minutes the Mac blacks out every display for 30 seco
 
 A call changes nothing. The blackout comes when it is due, and you still hear and can speak. People watching your shared screen will see it: macOS can no longer reliably hide a window from screen sharing (since 15.4, by Apple's own statement), and any softer behaviour in calls would be a way to skip the break.
 
-Before a demo where 20 dark seconds would hurt, use a pause. It costs a break before and a break after.
+Before a demo where 30 dark seconds would hurt, use a pause. It costs a break before and a break after.
 
 ## How each way around it is closed
 
@@ -78,7 +78,7 @@ Before a demo where 20 dark seconds would hurt, use a pause. It costs a break be
 
 - **Swift and AppKit**, compiled with `swiftc` by a build script that assembles `20-20-20.app` (menu-bar-only via `LSUIElement`). No Xcode project. The app is `Sources/main.swift`; `Tests/SelfTests.swift` is compiled into the test build only.
 - **Kept alive by launchd.** A per-user LaunchAgent with `KeepAlive` starts the app at login and restarts it if it dies. This replaces a login item. The repository carries `install.sh` and `uninstall.sh`; the uninstall script is the one supported way to remove the app.
-- **One owner of state.** A single object owns the cycle, the only timer, and the saved state. Windows display what it says and decide nothing.
+- **One owner of state.** A single object owns the cycle and the saved state. The app's one timer only asks it where things stand, and windows display what it says and decide nothing.
 
   | From | Event | To |
   | --- | --- | --- |
@@ -95,9 +95,8 @@ Before a demo where 20 dark seconds would hurt, use a pause. It costs a break be
   No other transition exists. In particular nothing leads from Break to Working or Off except time.
 
 - **One clock.** At the first launch after a restart of the Mac the app records the date, time and time zone once, and from then on derives the time from elapsed time since boot. Work hours, the 20-minute cycle and the pause lock all read this clock and never the live system clock.
-- **Saved state:** the current state, its deadline, when the last pause ended, the clock reading for this boot session, the work hours in force, and any changed work hours with the day they start. Written on every transition. A different boot session on launch means a fresh clock reading and, inside work hours, a fresh Working at 20:00.
+- **Saved state:** the current state, its deadline, when a pause is next allowed, the clock reading for this boot session, the work hours in force, and any changed work hours with the day they start. Written on every transition. A different boot session on launch means a fresh clock reading and, inside work hours, a fresh Working at 20:00.
 - **Overlay:** one borderless, non-activating window per display at a window level above full-screen apps, joining all Spaces, rebuilt when the display configuration changes.
-
 - **Lock detection:** the lock and unlock notifications can be posted by any process, so each is confirmed against the system's own session state, and a recorded lock that the system no longer reports is dropped without being counted.
 - **Timing:** the app holds a system activity for its whole life so macOS does not nap it and deliver its timers late.
 
@@ -109,9 +108,13 @@ Before a demo where 20 dark seconds would hurt, use a pause. It costs a break be
 | `./build.sh test` | Builds the separate test build (shortened times, a Quit item, its own saved state) |
 | `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --self-test` | Runs the rule checks against a fake clock; shows nothing on screen |
 | `./install.sh` | Builds, installs to `~/Applications`, and starts it under launchd |
-| `./uninstall.sh` | Stops and removes the app, its launchd agent and its saved state |
+| `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --render-previews <folder>` | Writes pictures of the blackout and the Work hours form; shows nothing on screen |
+| `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --reset-state` | Deletes the test build's own saved state |
+| `./uninstall.sh` | Stops and removes the app, its launchd agent, its saved state and the test build's saved state |
 
-Test build switches: `-workSeconds 60`, `-restSeconds 5`, `-fastPause YES` (pauses of 30, 60 and 120 seconds, 2-minute lock).
+Test build switches: `-workSeconds 60`, `-restSeconds 5` (the 10-second margin stays), `-fastPause YES` (pauses of 30, 60 and 120 seconds, 2-minute lock), `-testHours allDay` (skips onboarding and runs at any hour).
+
+While it runs, the test build writes `screen-check.json` next to its saved state at each blackout: whether every display is covered, what the system has stacked above the blackout, and whether keyboard focus stayed where it was.
 
 ## Verification status
 
