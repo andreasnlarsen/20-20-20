@@ -14,6 +14,12 @@ With Homebrew:
 brew install --cask andreasnlarsen/tap/20-20-20
 ```
 
+Then open it once so it can start itself at login from then on (do the same after an upgrade):
+
+```sh
+open /Applications/20-20-20.app
+```
+
 Homebrew 6 and later ask you to trust taps outside the official catalogue. If the install is refused with "untrusted tap", run `brew trust andreasnlarsen/tap` once and install again.
 
 Or download `20-20-20-<version>.zip` from [Releases](https://github.com/andreasnlarsen/20-20-20/releases), unzip it, move the app to `/Applications` and open it once. The app is signed with a Developer ID and notarized by Apple.
