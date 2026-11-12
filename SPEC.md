@@ -74,11 +74,12 @@ Before a demo where 30 dark seconds would hurt, use a pause. It costs a break be
 - Network time check
 - Idle detection, automatic pausing for video or games
 - Long breaks, posture and blink reminders
-- Notarization, auto-update, App Store
+- Auto-update, App Store
 
 ## Technical decisions
 
 - **Swift and AppKit**, compiled with `swiftc` by a build script that assembles `20-20-20.app` (menu-bar-only via `LSUIElement`). No Xcode project. The app is `Sources/main.swift`; `Tests/SelfTests.swift` is compiled into the test build only.
+- **Requires macOS 26 or later on Apple silicon.** `build.sh` names that target. Release 1.0.0 was built without a target and took macOS 26 from the Mac it was built on, so it has never run on anything older. Nothing older has been tried.
 - **Kept alive by launchd.** The first time the app is opened it writes its own per-user launchd job (`~/Library/LaunchAgents/com.andreaslar.twenty-twenty-twenty.plist`, with `KeepAlive`), loads it and exits. launchd then runs the app with `--agent`, starts it at login and restarts it if it dies. The job is rewritten whenever the app has moved or been replaced. Apple's newer registration API (`SMAppService`) was tried first and dropped: on this Mac launchd could not find the app through it, and the job would also have depended on the app bundle staying untouched across updates.
 - **Distribution.** Free, MIT licence, public source. Releases are signed with a Developer ID, notarized by Apple, and published as a zip on GitHub and as a cask in the `andreasnlarsen/homebrew-tap` tap. The signing identity is named in one place, `release.sh`.
 - **One owner of state.** A single object owns the cycle and the saved state. The app's one timer only asks it where things stand, and windows display what it says and decide nothing.

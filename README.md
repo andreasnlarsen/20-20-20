@@ -4,7 +4,7 @@ A macOS menu-bar app that makes you take the 20-20-20 eye break: every 20 minute
 
 During your work hours, every 20 minutes every display goes dark for 30 seconds: 10 seconds to get to a window, then the 20. There is no skip button, no snooze and no Quit. If you kill the app, macOS starts it again and the break starts over.
 
-Free and open source under the [MIT licence](LICENSE). Requires macOS 14 or later.
+Free and open source under the [MIT licence](LICENSE). Requires macOS 26 or later on Apple silicon.
 
 ## Install
 

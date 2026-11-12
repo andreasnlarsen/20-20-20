@@ -31,7 +31,8 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp Resources/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
 
-swiftc "${flags[@]}" -module-name TwentyTwentyTwenty -module-cache-path build/module-cache \
+# The oldest macOS the app runs on is stated here, so it does not follow the Mac that builds it.
+swiftc "${flags[@]}" -target arm64-apple-macos26.0 -module-name TwentyTwentyTwenty -module-cache-path build/module-cache \
   -o "$app/Contents/MacOS/$name" "${sources[@]}"
 
 cat > "$app/Contents/Info.plist" <<EOF
@@ -46,7 +47,7 @@ cat > "$app/Contents/Info.plist" <<EOF
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$version</string>
   <key>CFBundleVersion</key><string>1</string>
-  <key>LSMinimumSystemVersion</key><string>14.0</string>
+  <key>LSMinimumSystemVersion</key><string>26.0</string>
   <key>LSUIElement</key><true/>
   <key>LSMultipleInstancesProhibited</key><true/>
   <key>NSHighResolutionCapable</key><true/>

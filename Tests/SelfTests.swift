@@ -357,7 +357,7 @@ func renderPreviews(into folder: String) {
         write(backdrop, size: size, as: name)
     }
 
-    write(BlackoutView(count: -7), size: NSSize(width: 1440, height: 900), as: "blackout.png")
+    write(BlackoutView(count: 12), size: NSSize(width: 1440, height: 900), as: "blackout.png")
     form("hours-onboarding.png", shown: .everyDay8to18, onboarding: true,
          footnote: "These hours apply as soon as you confirm. Any later change starts the next day.")
     form("hours-change.png", shown: WorkHours(startMinute: 9 * 60, endMinute: 17 * 60, weekdays: [2, 3, 4, 5, 6]),
