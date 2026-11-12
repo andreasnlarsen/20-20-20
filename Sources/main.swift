@@ -373,7 +373,7 @@ final class BlackoutView: NSView {
 
     init(count: Int) {
         super.init(frame: .zero)
-        let message = NSTextField(labelWithString: "Look at something 20 feet away")
+        let message = NSTextField(labelWithString: "Look at something 20 feet away (6 m)")
         message.font = .systemFont(ofSize: 34, weight: .medium)
         message.textColor = NSColor(white: 1, alpha: 0.85)
         counter.font = .monospacedDigitSystemFont(ofSize: 160, weight: .thin)
