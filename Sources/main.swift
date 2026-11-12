@@ -1022,10 +1022,6 @@ MainActor.assumeIsolated {
         try? FileManager.default.removeItem(at: AppDelegate.stateURL.deletingLastPathComponent())
         exit(0)
     }
-    if let flag = CommandLine.arguments.firstIndex(of: "--render-icon"), CommandLine.arguments.count > flag + 1 {
-        renderIcon(into: CommandLine.arguments[flag + 1])
-        exit(0)
-    }
     if let flag = CommandLine.arguments.firstIndex(of: "--render-previews"), CommandLine.arguments.count > flag + 1 {
         renderPreviews(into: CommandLine.arguments[flag + 1])
         exit(0)

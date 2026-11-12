@@ -28,7 +28,7 @@ During work hours, every 20 minutes the Mac blacks out every display for 30 seco
 
 **Menu (the whole interface):** `Next break in 14:32` (outside work hours: `Off until Mon 08:00`), `Break now`, `Pause 30 min`, `Pause 60 min`, `Pause 120 min`, `Work hours…`. Above the pause items one line says a pause starts and ends with a break, and while pausing is locked another says when it is available again. During the last minute the countdown also shows in the menu bar itself.
 
-**Icons:** the menu bar shows an eye. The app icon is the same eye, white on a dark plate; it appears wherever macOS lists the app, such as Login Items, Activity Monitor and menu bar managers.
+**Icons:** the menu bar shows an eye. The app icon is a pair of glasses with a pause sign in each lens, on an orange tile; it appears wherever macOS lists the app, such as Login Items, Activity Monitor and menu bar managers.
 
 **Work hours panel (the only setting):** start time, end time, seven weekday ticks, and one line saying when the shown hours take effect.
 
@@ -101,7 +101,7 @@ Before a demo where 30 dark seconds would hurt, use a pause. It costs a break be
 - **One clock.** At the first launch after a restart of the Mac the app records the date, time and time zone once, and from then on derives the time from elapsed time since boot. Work hours, the 20-minute cycle and the pause lock all read this clock and never the live system clock.
 - **Saved state:** the current state, its deadline, when a pause is next allowed, the clock reading for this boot session, the work hours in force, and any changed work hours with the day they start. Written on every transition. A different boot session on launch means a fresh clock reading and, inside work hours, a fresh Working at 20:00.
 - **Overlay:** one borderless, non-activating window per display at a window level above full-screen apps, joining all Spaces, rebuilt when the display configuration changes.
-- **App icon:** drawn by the test build from the same system eye symbol as the menu bar and packed into `Resources/AppIcon.icns`, which is committed. `build.sh` copies it into the app.
+- **App icon:** the artwork is `Resources/AppIcon.png` (1024 pixels square, the tile 824 pixels wide, as macOS icons are laid out). `make-icon.sh` turns it into `Resources/AppIcon.icns`; both are committed, and `build.sh` copies the `.icns` into the app. Until 1.0.0 the icon was drawn by the test build from the menu bar's eye symbol.
 - **Lock detection:** the lock and unlock notifications can be posted by any process, so each is confirmed against the system's own session state, and a recorded lock that the system no longer reports is dropped without being counted.
 - **Timing:** the app holds a system activity for its whole life so macOS does not nap it and deliver its timers late.
 
@@ -116,7 +116,7 @@ Before a demo where 30 dark seconds would hurt, use a pause. It costs a break be
 | `./release.sh` | Runs the self-test, builds signed with the Developer ID, notarizes, staples, and prints the zip path and its SHA-256 for the cask |
 | `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --render-previews <folder>` | Writes pictures of the blackout and the Work hours form; shows nothing on screen |
 | `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --reset-state` | Deletes the test build's own saved state |
-| `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --render-icon build/AppIcon.iconset` then `iconutil -c icns build/AppIcon.iconset -o Resources/AppIcon.icns` | Redraws the app icon |
+| `./make-icon.sh` | Makes `Resources/AppIcon.icns` from the artwork in `Resources/AppIcon.png` |
 | `./uninstall.sh` | Stops and removes the app, its launchd agent, its saved state and the test build's saved state |
 
 Test build switches: `-workSeconds 60`, `-restSeconds 5` (the 10-second margin stays), `-fastPause YES` (pauses of 30, 60 and 120 seconds, 2-minute lock), `-testHours allDay` (skips onboarding and runs at any hour).

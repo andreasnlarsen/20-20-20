@@ -25,7 +25,7 @@ case "$variant" in
     ;;
 esac
 
-version="1.0.0"
+version="1.0.1"
 app="build/$name.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
