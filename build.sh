@@ -25,6 +25,7 @@ case "$variant" in
     ;;
 esac
 
+version="1.0.0"
 app="build/$name.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -43,7 +44,7 @@ cat > "$app/Contents/Info.plist" <<EOF
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleName</key><string>20-20-20</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundleShortVersionString</key><string>$version</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
@@ -53,5 +54,12 @@ cat > "$app/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-codesign --force --sign - "$app"
+# Local builds are signed ad hoc. A release sets CODESIGN_IDENTITY to a Developer ID,
+# which also turns on the hardened runtime that notarization requires.
+CODESIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+if [[ "$CODESIGN_IDENTITY" == "-" ]]; then
+  codesign --force --sign - "$app"
+else
+  codesign --force --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$app"
+fi
 echo "Built $app"

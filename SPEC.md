@@ -1,6 +1,6 @@
 # SPEC: 20-20-20
 
-- **Status:** built and installed; rule checks pass; on-screen checks partly run (see Verification status)
+- **Status:** released as 1.0.0 (notarized, on Homebrew); rule checks pass; on-screen checks partly run (see Verification status)
 - **Last updated:** 2026-11-11
 - **Decision basis**
   - From Andreas: the purpose is to not let him skip the break. It must be impossible to game. No exit during a break. It works the same in meetings. A break must not break an ongoing dictation (Wispr Flow). Three real exceptions exist: recording the screen, presenting in person, watching a film. Minimum requirements, lightweight.
@@ -57,7 +57,7 @@ Before a demo where 30 dark seconds would hurt, use a pause. It costs a break be
 
 **What it cannot close**
 
-- **Removing it on purpose.** You own the Mac, so you can uninstall it from a terminal, wipe its saved state so it thinks it is starting for the first time, or switch it off under System Settings → General → Login Items. All are deliberate multi-step acts, not a dismiss button. Closing them would mean software running as root that you could still remove with your password.
+- **Removing it on purpose.** You own the Mac, so you can uninstall it from a terminal (`brew uninstall` or `uninstall.sh`), wipe its saved state so it thinks it is starting for the first time, or switch it off under System Settings → General → Login Items. All are deliberate multi-step acts, not a dismiss button. Closing them would mean software running as root that you could still remove with your password.
 - **Restarting the Mac.** It resets the 20-minute clock and the pause lock. It also takes longer than the break.
 - **Changing the system date and then restarting.** After a restart the app has only the Mac's own clock to go by, so a false date set before restarting can put it outside work hours. Closing this needs the app to fetch the time from the network, which is cut.
 - **A legitimate time-zone change** (travel) is picked up at the next restart, not before.
@@ -79,7 +79,8 @@ Before a demo where 30 dark seconds would hurt, use a pause. It costs a break be
 ## Technical decisions
 
 - **Swift and AppKit**, compiled with `swiftc` by a build script that assembles `20-20-20.app` (menu-bar-only via `LSUIElement`). No Xcode project. The app is `Sources/main.swift`; `Tests/SelfTests.swift` is compiled into the test build only.
-- **Kept alive by launchd.** A per-user LaunchAgent with `KeepAlive` starts the app at login and restarts it if it dies. This replaces a login item. The repository carries `install.sh` and `uninstall.sh`; the uninstall script is the one supported way to remove the app.
+- **Kept alive by launchd.** The first time the app is opened it writes its own per-user launchd job (`~/Library/LaunchAgents/com.andreaslar.twenty-twenty-twenty.plist`, with `KeepAlive`), loads it and exits. launchd then runs the app with `--agent`, starts it at login and restarts it if it dies. The job is rewritten whenever the app has moved or been replaced. Apple's newer registration API (`SMAppService`) was tried first and dropped: on this Mac launchd could not find the app through it, and the job would also have depended on the app bundle staying untouched across updates.
+- **Distribution.** Free, MIT licence, public source. Releases are signed with a Developer ID, notarized by Apple, and published as a zip on GitHub and as a cask in the `andreasnlarsen/homebrew-tap` tap. The signing identity is named in one place, `release.sh`.
 - **One owner of state.** A single object owns the cycle and the saved state. The app's one timer only asks it where things stand, and windows display what it says and decide nothing.
 
   | From | Event | To |
@@ -110,7 +111,8 @@ Before a demo where 30 dark seconds would hurt, use a pause. It costs a break be
 | `./build.sh` | Builds `build/20-20-20.app` |
 | `./build.sh test` | Builds the separate test build (shortened times, a Quit item, its own saved state) |
 | `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --self-test` | Runs the rule checks against a fake clock; shows nothing on screen |
-| `./install.sh` | Builds, installs to `~/Applications`, and starts it under launchd |
+| `./install.sh` | Builds from source, installs to `~/Applications`, and opens the app once so it hands itself to launchd |
+| `./release.sh` | Runs the self-test, builds signed with the Developer ID, notarizes, staples, and prints the zip path and its SHA-256 for the cask |
 | `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --render-previews <folder>` | Writes pictures of the blackout and the Work hours form; shows nothing on screen |
 | `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --reset-state` | Deletes the test build's own saved state |
 | `build/20-20-20-test.app/Contents/MacOS/20-20-20-test --render-icon build/AppIcon.iconset` then `iconutil -c icns build/AppIcon.iconset -o Resources/AppIcon.icns` | Redraws the app icon |
@@ -129,7 +131,8 @@ Two seconds after launch the test build writes `status-item.json` next to its sa
 - **Focus (R5, in part).** During the blackout the app was not active and had no key window, and the frontmost app stayed the one in use before.
 - **Kill and restart under launchd (R4).** Killed mid-cycle: back after 0.1 seconds with the due time unchanged. Killed with 9 seconds of a break left: back after 0.4 seconds with the full break ahead again, and the blackout then ended by itself.
 - **Look.** The blackout and the Work hours form were rendered to pictures and inspected: onboarding, a later change, and the "no day ticked" error.
-- **Install (R7, in part).** `install.sh` ran; launchd reports the app running from `~/Applications` with start-at-login set.
+- **Self-registration and install (R4, R7 in part).** Opened once from `/Applications`, the released app wrote and loaded its launchd job and launchd reported it running with `--agent`. Killed once there, it was back after 0.1 seconds with its state unchanged. Logging out and in was not done.
+- **Release.** 1.0.0 was accepted by Apple's notary service and passes the Gatekeeper check as "Notarized Developer ID".
 - **App icon.** The 1024-pixel icon was rendered and inspected, and the installed app carries it.
 - **Menu bar icon.** The app creates it with its image, but on this Mac it was placed far off screen. Bartender is running and hides new menu bar items, so the eye and the last-minute countdown are not visible until 20-20-20 is set to always show in Bartender.
 - **Independent review.** A separate review of the code looked for ways around a break and found none in the cycle's rules. Its findings on lock detection, on nothing being enforced before onboarding, on the app delegate's lifetime and on timer delays were fixed; the ones that cannot be closed are listed under "What it cannot close".

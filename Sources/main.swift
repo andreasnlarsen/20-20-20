@@ -929,6 +929,83 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 }
 
+// MARK: - Restart agent
+
+/// launchd runs the app with `--agent`, starts it at login and starts it again whenever it dies.
+/// Any other launch (a person opening it, an installer) only writes the launchd job and hands over.
+enum RestartAgent {
+    static let launchArgument = "--agent"
+    static let label = "com.andreaslar.twenty-twenty-twenty"
+
+    private static var jobFile: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/LaunchAgents/\(label).plist")
+    }
+    private static var service: String { "gui/\(getuid())/\(label)" }
+
+    /// True when launchd runs the app, so the process that asked should end.
+    /// The proof is the running agent itself, not launchctl's exit status.
+    static func handOver() -> Bool {
+        guard let executable = Bundle.main.executablePath else { return false }
+        let job: [String: Any] = [
+            "Label": label,
+            "ProgramArguments": [executable, launchArgument],
+            "AssociatedBundleIdentifiers": [Bundle.main.bundleIdentifier ?? label],
+            "RunAtLoad": true,
+            "KeepAlive": true,
+            "ThrottleInterval": 1,
+            "LimitLoadToSessionType": "Aqua",
+            "ProcessType": "Interactive",
+        ]
+        do {
+            let wanted = try PropertyListSerialization.data(fromPropertyList: job, format: .xml, options: 0)
+            // Rewritten when the app has moved or been replaced, so the job always names this copy.
+            if (try? Data(contentsOf: jobFile)) != wanted {
+                launchctl("bootout", service)
+                try FileManager.default.createDirectory(
+                    at: jobFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try wanted.write(to: jobFile, options: .atomic)
+            }
+        } catch {
+            NSLog("20-20-20 could not write its launchd job: \(error)")
+        }
+        if launchctl("print", service) != 0 {
+            launchctl("bootstrap", "gui/\(getuid())", jobFile.path)
+        }
+
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if agentIsRunning { return true }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        // Breaks still happen in this process; only the restart-if-killed protection is missing.
+        NSLog("20-20-20 was not started by launchd and runs without restart protection")
+        return false
+    }
+
+    @discardableResult
+    private static func launchctl(_ arguments: String...) -> Int32 {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = arguments
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus
+        } catch {
+            return -1
+        }
+    }
+
+    private static var agentIsRunning: Bool {
+        guard let identifier = Bundle.main.bundleIdentifier else { return false }
+        return NSRunningApplication.runningApplications(withBundleIdentifier: identifier)
+            .contains { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
+    }
+}
+
 // MARK: - Start
 
 #if TESTBUILD
@@ -951,6 +1028,11 @@ MainActor.assumeIsolated {
     }
     if let flag = CommandLine.arguments.firstIndex(of: "--render-previews"), CommandLine.arguments.count > flag + 1 {
         renderPreviews(into: CommandLine.arguments[flag + 1])
+        exit(0)
+    }
+    #endif
+    #if !TESTBUILD
+    if !CommandLine.arguments.contains(RestartAgent.launchArgument), RestartAgent.handOver() {
         exit(0)
     }
     #endif
