@@ -133,9 +133,9 @@ Two seconds after launch the test build writes `status-item.json` next to its sa
 - **Kill and restart under launchd (R4).** Killed mid-cycle: back after 0.1 seconds with the due time unchanged. Killed with 9 seconds of a break left: back after 0.4 seconds with the full break ahead again, and the blackout then ended by itself.
 - **Look.** The blackout and the Work hours form were rendered to pictures and inspected: onboarding, a later change, and the "no day ticked" error.
 - **Self-registration and install (R4, R7 in part).** Opened once from `/Applications`, the released app wrote and loaded its launchd job and launchd reported it running with `--agent`. Killed once there, it was back after 0.1 seconds with its state unchanged. Logging out and in was not done.
-- **Release.** 1.0.0 was accepted by Apple's notary service and passes the Gatekeeper check as "Notarized Developer ID".
+- **Release.** 1.0.0 was accepted by Apple's notary service and passes the Gatekeeper check as "Notarized Developer ID". 1.0.1 (new app icon only) was accepted the same way on 13 November 2026, and the Homebrew upgrade to it was run on this Mac: the app was back under launchd after being started once, with its work hours kept.
 - **Homebrew install.** `brew install --cask andreasnlarsen/tap/20-20-20` put the released app in `/Applications` on this Mac, Gatekeeper accepted that copy, and after one more kill launchd started it from there (back after 0.2 seconds, state unchanged). The cask tells the user to open the app once; Homebrew does not open it.
-- **App icon.** The 1024-pixel icon was rendered and inspected, and the installed app carries it.
+- **App icon.** The icon macOS shows for the built 1.0.1 app was drawn to a picture and inspected.
 - **Menu bar icon.** The app creates it with its image, but on this Mac it was placed far off screen. Bartender is running and hides new menu bar items, so the eye and the last-minute countdown are not visible until 20-20-20 is set to always show in Bartender.
 - **Independent review.** A separate review of the code looked for ways around a break and found none in the cycle's rules. Its findings on lock detection, on nothing being enforced before onboarding, on the app delegate's lifetime and on timer delays were fixed; the ones that cannot be closed are listed under "What it cannot close".
 
